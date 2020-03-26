@@ -1,6 +1,6 @@
 let s:cache = {}
 
-function! asyncomplete#sources#dictionary#completor(opt, ctx)
+function! asyncomplete#sources#dictionary#completor(opt, ctx) abort
   let l:typed = a:ctx['typed']
   let l:col = a:ctx['col']
 
@@ -22,6 +22,6 @@ function! asyncomplete#sources#dictionary#completor(opt, ctx)
   call asyncomplete#complete(a:opt['name'], a:ctx, l:startcol, s:cache[&filetype])
 endfunction
 
-function! asyncomplete#sources#dictionary#get_source_options(opts)
+function! asyncomplete#sources#dictionary#get_source_options(opts) abort
   return extend(extend({}, a:opts), {})
 endfunction
