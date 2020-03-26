@@ -10,7 +10,8 @@ function! asyncomplete#sources#dictionary#completor(opt, ctx) abort
 
   if !has_key(s:cache, &filetype)
     let l:matches = []
-    let l:dictionaries = split(&dictionary, ',')
+    let l:dictionaries = split(&dictionary, '[^\\]\zs,\ze')
+    let l:dictionaries = map(copy(l:dictionaries), {i,v -> substitute(v, '\\,', ',', '') })
 
     for l:dictionary in l:dictionaries
       let l:matches = l:matches + readfile(l:dictionary)
