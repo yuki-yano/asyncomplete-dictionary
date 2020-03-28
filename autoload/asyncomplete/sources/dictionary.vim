@@ -1,10 +1,10 @@
 let s:String = vital#asyncompletedictionary#import('Data.String')
 let s:List   = vital#asyncompletedictionary#import('Data.List')
 
-let s:dictionary_cache = {}
-let s:filetype_cache = {}
-
 let s:loaded_dictionary = 0
+let s:dictionary_cache = {}
+
+let s:filetype_cache = {}
 
 function! s:load_dictionary() abort
   if !s:loaded_dictionary
@@ -13,11 +13,14 @@ function! s:load_dictionary() abort
     let l:dictionaries = s:List.map(l:rawpathes, {v -> substitute(v, '\\,', ',', '') })
 
     for l:dictionary in l:dictionaries
-      let s:dictionary_cache[l:dictionary] = readfile(l:dictionary)
-      sleep 100m
+      if filereadable(l:dictionary)
+        let s:dictionary_cache[l:dictionary] = readfile(l:dictionary)
+        sleep 100m
+      endif
     endfor
 
     let s:loaded_dictionary = 1
+    call asyncomplete#log('dictionary', 'cached dictionary')
   endif
 endfunction
 
@@ -46,6 +49,7 @@ function! s:get_cache(filetype) abort
     \ }
     \)
 
+  call asyncomplete#log('dictionary','cached filetype', a:filetype)
   return s:filetype_cache[a:filetype]
 endfunction
 
@@ -57,13 +61,17 @@ function! asyncomplete#sources#dictionary#completor(opt, ctx) abort
   let l:kwlen = len(l:kw)
   let l:startcol = l:col - l:kwlen
 
-  " if a:opt['minlen'] <= l:kwlen
-  let l:cache = s:get_cache(&filetype)
+  if a:opt['minlen'] <= l:kwlen
+    let l:cache = s:get_cache(&filetype)
 
-  let l:filtered_cache = s:List.filter(l:cache, {v -> match(v.word, '\c^' . s:String.escape_pattern(l:kw)) != -1})
+    let l:filtered_cache = s:List.filter(l:cache,
+      \ {v -> match(v.word, '\c^' . s:String.escape_pattern(l:kw)) != -1})
 
-  call asyncomplete#complete(a:opt['name'], a:ctx, l:startcol, l:filtered_cache)
-  " endif
+    call asyncomplete#complete(a:opt['name'], a:ctx, l:startcol, l:filtered_cache)
+  else
+    call asyncomplete#log('dictionary', 'not fire,refresh need', l:kw, string(l:kwlen))
+    call asyncomplete#complete(a:opt['name'], a:ctx, l:startcol, [], 1)
+  endif
 endfunction
 
 function! asyncomplete#sources#dictionary#get_source_options(opts) abort
