@@ -16,9 +16,13 @@ function! s:load_dictionary(filetype) abort
     let l:matches = l:matches + readfile(l:dictionary)
   endfor
 
-  let l:pairs = s:List.map(l:matches, {v -> s:String.nsplit(v, 2, '\s\+') + [''] })
+  let l:pairs = s:List.map(l:matches, {v -> [v] + s:String.nsplit(v, 2, '\s\+') })
 
-  let s:cache[a:filetype] = s:List.map(l:pairs, {v -> {'word':v[0] , 'abbar':v[1] , 'menu':'[dict]', 'dup': 1, 'icase': 1}})
+  let s:cache[a:filetype] = s:List.map(l:pairs,
+    \ { v
+    \   -> {'word':v[1] , 'info':v[0] , 'menu':'[dict]', 'dup': 1, 'icase': 1}
+    \ }
+    \)
 
   return s:cache[a:filetype]
 endfunction
@@ -31,7 +35,11 @@ function! asyncomplete#sources#dictionary#completor(opt, ctx) abort
   let l:kwlen = len(l:kw)
   let l:startcol = l:col - l:kwlen
 
-  call asyncomplete#complete(a:opt['name'], a:ctx, l:startcol, s:load_dictionary(&filetype))
+  let l:cache = s:load_dictionary(&filetype)
+
+  let l:filtered_cache = s:List.filter(l:cache, {v -> match(v.word, '\c^' . s:String.escape_pattern(l:kw)) != -1})
+
+  call asyncomplete#complete(a:opt['name'], a:ctx, l:startcol, l:filtered_cache)
 endfunction
 
 function! asyncomplete#sources#dictionary#get_source_options(opts) abort
